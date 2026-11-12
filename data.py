@@ -181,3 +181,67 @@ def bmi_category(bmi):
 df['BMI분류'] = df['BMI'].apply(bmi_category)
 
 print(df['BMI분류'].head())
+
+# 4) 분석
+
+# 4) 최고/최저 : BMI가 가장 높은/낮은 사람
+
+max_bmi_row = df.loc[df['BMI'].idxmax()] # 최댓값 위치 반환
+min_bmi_row = df.loc[df['BMI'].idxmin()] # 최솟값 위치 반환
+
+print("[BMI 최고]")
+print(max_bmi_row[['환자ID', '성별', '나이', '키_cm', '몸무게_kg', 'BMI', 'BMI분류']])
+
+print("[BMI 최저]")
+print(min_bmi_row[['환자ID', '성별', '나이', '키_cm', '몸무게_kg', 'BMI', 'BMI분류']])
+
+# 4-2) 혈압 분류별 평균 지표
+# groupby() : 데이터를 같은 기준으로 묶는기능 
+bp_group = df.groupby('혈압분류')[['SBP(수축기)', 'DBP(이완기)', '맥박압_pp', '평균동맥압_MAP', 'BMI', '운동빈도(주)']].mean()
+print(bp_group)
+
+# 4-3) 성별 평균 비교
+
+gender_mean = df.groupby('성별')[['SBP(수축기)', 'DBP(이완기)', '맥박압_pp', '평균동맥압_MAP', 'BMI', '운동빈도(주)']].mean()
+print(gender_mean)
+
+# 4-4) 나이대(연령대) 만들기 _ 그룹 평균
+# pd.cut() : 숫자를 구간으로 나눠 범주형 컬럼 생성
+
+bins = [0, 29, 39, 49, 59, 120]
+labels = ["20대", "30대", "40대", "50대", "60대 이상"]
+df['나이대'] = pd.cut(df['나이'], bins = bins, labels = labels, right = True)
+
+age_group = df.groupby('나이대')[['SBP(수축기)', 'DBP(이완기)', '맥박압_pp', '평균동맥압_MAP', 'BMI', '운동빈도(주)']].mean()
+print(age_group)
+
+# 4-5) 상관관계(수치형 컬럼)
+# corr() : 상관계수 (-1 ~ 1)
+# - 1에 가까울수록 같이 오르는 경향(양의 상관)
+# - -1에 가까울수록 반대로 움직이는 경향(음의 상관)
+# - 0에 가까우면 관계가 거의 없다(무상관에 가까움)
+
+corr_cols = ['나이', '키_cm', '몸무게_kg', 'SBP(수축기)', 'DBP(이완기)', '공복혈당', '운동빈도(주)', 'BMI', '맥박압_pp', '평균동맥압_MAP']
+corr_df = df[corr_cols].corr()
+print("상관관계")
+print(corr_df)
+print("상관관계 - 소수점 정리")
+print(corr_df.round(2)) # 소수점 2번째자리까지본다잉
+
+# 4-6) 조건 필터링
+rist_df = df[(df['혈압분류'] == '고혈압2기') | # | -> or연산자 
+             (df['공복혈당'] >= 126) |
+             (df['BMI'] >= 25.0)
+            ].copy()
+
+print("관심 대상 목록")
+print(rist_df[['환자ID', '성별', '나이', 'SBP(수축기)', 'DBP(이완기)', '혈압분류', '공복혈당', 'BMI', 'BMI분류', '운동빈도(주)']])
+
+# 4-7) 교차분석 : 성별 + 혈압분류
+# 두개의 기준을 동시에 비교하는 분석
+# 성별에 따라 혈압 분포가 어떻게 다른지 확인
+# 단순 평균보다 더 분포를 볼 수 있음
+
+# crosstab() : 두 개 이상의 범주형 변수의 관계를 표로 정리하는 함수
+cross = pd.crosstab(df['성별'], df['혈압분류'])
+print(cross)
